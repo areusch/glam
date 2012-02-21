@@ -3,6 +3,7 @@ GLAM
 (GoLang Actor Model)
 
 So Go kind of sucks for concurrently accessing shared data structures. Sure, its primitives are powerful and can lend themselves to a high performance system. For the 99.9% of cases where performance isn't mission-crictical, it could really use a simple way to do the following:
+
 ```go
 // Phonebook shared among many threads.
 type Phonebook struct {
