@@ -42,7 +42,7 @@ func (me Phonebook) Lookup(name string) (int, bool) {
 func main() {
      // herp derp
      book := Phonebook{glam.Actor{}, make(map[string]int)}
-     book.StartActor(book)
+     book.StartActor(book)  // Call this before calling "Call"
      book.Call(book.Lookup, "Jane")[0].Int()
 }
 ```
