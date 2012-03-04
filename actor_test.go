@@ -12,6 +12,10 @@ type A struct {
 	glam.Actor
 }
 
+type B interface {
+	Tricks() int
+}
+
 type GetXRequest struct {
 	x int
 	out chan GetXResponse
@@ -39,9 +43,17 @@ func (a A) GetX(x int) int {
 	return a.x + x
 }
 
-
 func (a A) DoPanic() int {
 	panic(a.y)
+}
+
+func (a *A) Tricks() int {
+	go a.LongTricks(a.x, a.Defer())
+	return a.x
+}
+
+func (a A) LongTricks(x int, reply glam.Reply) {
+	reply.Send(x + 5)
 }
 
 func TestGetX(t *testing.T) {
@@ -59,11 +71,19 @@ func TestPanic(t *testing.T) {
 
 	defer func() {
 		if e := recover(); e != 3 {
-			t.Errorf("Expected panic(3), actual %v\n", e);
+			t.Errorf("Expected panic(3), actual %v\n", e)
 		}
 	}()
 
 	a.Call(A.DoPanic)
+}
+
+func TestDefer(t *testing.T) {
+	a := A{3, 4, nil, glam.Actor{}}
+	a.StartActor(&a)
+	if val := a.Call((*A).Tricks)[0].Int(); val != 8 {
+		t.Errorf("Expected returning x+5, actual %v\n", val)
+	}
 }
 
 func BenchmarkActor(b *testing.B) {
