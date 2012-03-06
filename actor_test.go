@@ -48,7 +48,7 @@ func (a A) DoPanic() int {
 }
 
 func (a *A) Tricks() int {
-	go a.LongTricks(a.x, a.Defer())
+	go a.Defer((*A).LongTricks, a, a.x)
 	return a.x
 }
 

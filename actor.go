@@ -54,9 +54,21 @@ func (r Actor) Call(function interface{}, args ...interface{}) []reflect.Value {
 // Defers responding to a particular call. Returns a Reply object that
 // represents the reply. If an actor invokes this function, it promises
 // to eventually call Send or Panic on the reply object.
-func (r *Actor) Defer() Reply {
+func (r *Actor) Defer(function interface{}, args ...interface{}) Reply {
 	r.Deferred = true
-	return Reply{Response: r.Current, Replied: false}
+	go r.Guard(function,
+		append(args,reflect.ValueOf(Reply{Response: r.Current, Replied: false})))
+	return
+}
+
+func (r *Actor) Guard (function interface{}, args ...interface{}) {
+	defer func() {
+		if e := recover(); e != nil {
+			// TODO(areusch): Notify other interested actors.
+		}
+	}()
+
+	function.Call(passedArgs)
 }
 
 func (r *Actor) processOneRequest(request Request) {
