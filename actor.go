@@ -91,7 +91,7 @@ func (r *Actor) processOneRequest(request Request) {
 // Start the internal goroutine that powers this actor. Call this function
 // before calling Do on this object.
 func (r *Actor) StartActor(receiver interface{}) {
-  r.In = make(chan Request, 0)
+	r.In = make(chan Request, 0)
 	r.Receiver = reflect.ValueOf(receiver)
 	go func() {
 		for {
@@ -103,7 +103,7 @@ func (r *Actor) StartActor(receiver interface{}) {
 
 type Reply struct {
 	Response chan Response
-	Replied bool
+	Replied  bool
 }
 
 // Indicates that a message has finished processing. Sends a reply to the

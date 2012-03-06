@@ -1,4 +1,4 @@
-package glam_test;
+package glam_test
 
 import (
 	"glam"
@@ -6,8 +6,8 @@ import (
 )
 
 type A struct {
-	x int
-	y int
+	x  int
+	y  int
 	in chan GetXRequest
 	glam.Actor
 }
@@ -17,19 +17,19 @@ type B interface {
 }
 
 type GetXRequest struct {
-	x int
+	x   int
 	out chan GetXResponse
 }
 
 type GetXResponse struct {
-	x int
+	x   int
 	err interface{}
 }
 
 func (a A) GoX(x int) int {
 	out := make(chan GetXResponse)
 	a.in <- GetXRequest{x, out}
-	return (<- out).x
+	return (<-out).x
 }
 
 func (a A) ProcessGetX() {
