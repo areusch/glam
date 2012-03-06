@@ -2,6 +2,8 @@ GLAM
 ====
 (GoLang Actor Model)
 
+**Disclaimer**: This is *all* experimental. I'm in no way, shape, or form an expert on Actor Model Concurrency.
+
 So Go kind of sucks for concurrently accessing shared data structures. Sure, its primitives are powerful and can lend themselves to a high performance system. For the 99.9% of cases where performance isn't mission-crictical, it could really use a simple way to do the following:
 
 ```go
@@ -48,13 +50,14 @@ func (b *Phonebook) Lookup(name string) (int, bool) {
 func (b *Phonebook) LongRunningImportFromFile(reader io.Reader) int {
      // Importing a phonebook might take a long time and block on I/O. We can still
      // handle this message in the context of the actor, but run it in a deferred
-     // fashion. We call Defer(), launch a new goroutine and return from this message
-     // handler. The new goroutine is responsible for sending the reply.
-     go b.DoImport(reader, b.Defer())
+     // fashion. Defer() launches a new goroutine and executes DoImport in the new
+     // routine. When this function returns, no response is sent to the caller.
+     b.Defer((*B).DoImport, b, reader)
 }
 
-// This function is ha
-func (b *Phonebook) DoImport(r io.Reader, reply glam.Reply) {
+// This function is executed in a new goroutine. If it needs to manipulate any state on
+// b, it should invoke a method to do so using b.Call.
+func (b *Phonebook) DoImport(r io.Reader, reply glam.Reply) int {
      numOk := 0
      for entry, err := ReadOneEntry(r); err == nil; entry, err = ReadOneEntry(r) {
           // From deferred functions, you can still send messages to the original actor.
@@ -63,13 +66,13 @@ func (b *Phonebook) DoImport(r io.Reader, reply glam.Reply) {
           }
      }
 
-     reply.Send(numOk)
+     return numOk
 }
 
 func main() {
      // herp derp
      book := Phonebook{glam.Actor{}, make(map[string]int)}
-     book.StartActor(*book)  // Call this before calling "Call"
+     book.StartActor(&book)  // Call this before calling "Call"
      book.Call((*Phonebook).Lookup, "Jane")[0].Int()
 }
 ```
@@ -80,8 +83,9 @@ Performance
 The tests include a benchmark. On my 2008 MBP:
 
 ```
-glam_test.BenchmarkActor	 1000000	      5256 ns/op
-glam_test.BenchmarkChannel	 1000000	      2121 ns/op
+glam_test.BenchmarkActor	  500000	      5088 ns/op
+glam_test.BenchmarkChannel	 1000000	      2028 ns/op
+glam_test.BenchmarkDeferred	  200000	      7718 ns/op
 ```
 
 So it's about 2.5x worse for trivial functions. No testing has been done against large numbers of arguments or situations where function calls may block.

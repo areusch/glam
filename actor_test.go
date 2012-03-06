@@ -105,3 +105,13 @@ func BenchmarkChannel(b *testing.B) {
 		a.GoX(3)
 	}
 }
+
+func BenchmarkDeferred(b *testing.B) {
+	b.StopTimer()
+	a := A{5, 10, nil, glam.Actor{}}
+	a.StartActor(&a)
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		a.Call((*A).Tricks)
+	}
+}
