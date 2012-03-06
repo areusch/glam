@@ -64,10 +64,10 @@ func (r *Actor) runDeferred(reply Reply, function interface{}, args []interface{
 	for i := 0; i < len(args); i++ {
 		valueArgs[i] = reflect.ValueOf(args[i])
 	}
-	reply.Send(r.Guard(reflect.ValueOf(function), valueArgs))
+	reply.Send(r.guard(reflect.ValueOf(function), valueArgs))
 }
 
-func (r *Actor) Guard(function reflect.Value, args []reflect.Value) (response Response) {
+func (r *Actor) guard(function reflect.Value, args []reflect.Value) (response Response) {
 	defer func() {
 		if e := recover(); e != nil {
 			response = Response{result: nil, err: e, panicked: true}
@@ -82,7 +82,7 @@ func (r *Actor) Guard(function reflect.Value, args []reflect.Value) (response Re
 func (r *Actor) processOneRequest(request Request) {
 	r.Deferred = false
 	r.Current = request.response
-	response := r.Guard(request.function, request.args)
+	response := r.guard(request.function, request.args)
 	if !r.Deferred {
 		request.response <- response
 	}
