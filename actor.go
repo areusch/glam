@@ -54,39 +54,37 @@ func (r Actor) Call(function interface{}, args ...interface{}) []reflect.Value {
 // Defers responding to a particular call. Returns a Reply object that
 // represents the reply. If an actor invokes this function, it promises
 // to eventually call Send or Panic on the reply object.
-func (r *Actor) Defer(function interface{}, args ...interface{}) Reply {
+func (r *Actor) Defer(function interface{}, args ...interface{}) {
 	r.Deferred = true
-	go r.Guard(function,
-		append(args,reflect.ValueOf(Reply{Response: r.Current, Replied: false})))
-	return
+	go r.runDeferred(Reply{Response: r.Current, Replied: false}, function, args)
 }
 
-func (r *Actor) Guard (function interface{}, args ...interface{}) {
+func (r *Actor) runDeferred(reply Reply, function interface{}, args []interface{}) {
+	valueArgs := make([]reflect.Value, len(args))
+	for i := 0; i < len(args); i++ {
+		valueArgs[i] = reflect.ValueOf(args[i])
+	}
+	reply.Send(r.Guard(reflect.ValueOf(function), valueArgs))
+}
+
+func (r *Actor) Guard(function reflect.Value, args []reflect.Value) (response Response) {
 	defer func() {
 		if e := recover(); e != nil {
-			// TODO(areusch): Notify other interested actors.
+			response = Response{result: nil, err: e, panicked: true}
 		}
 	}()
 
-	function.Call(passedArgs)
+	result := function.Call(args)
+	response = Response{result: result, err: nil, panicked: false}
+	return
 }
 
 func (r *Actor) processOneRequest(request Request) {
 	r.Deferred = false
 	r.Current = request.response
-	defer func() {
-		if e := recover(); e != nil {
-			request.response <- Response{err: e, panicked: true}
-		}
-	}()
-
-	result := request.function.Call(request.args)
-
+	response := r.Guard(request.function, request.args)
 	if !r.Deferred {
-		request.response <- Response{
-		result:   result,
-		err:      nil,
-		panicked: false}
+		request.response <- response
 	}
 }
 
@@ -110,33 +108,12 @@ type Reply struct {
 
 // Indicates that a message has finished processing. Sends a reply to the
 // sender indicating this.
-func (r *Reply) Send(response ...interface{}) {
+func (r *Reply) Send(response Response) {
 	if r.Replied {
 		panic("Send/Panic called twice!")
 	}
 
 	r.Replied = true
 
-	result := make([]reflect.Value, len(response))
-	for i := 0; i < len(response); i++ {
-		result[i] = reflect.ValueOf(response[i])
-	}
-
-	r.Response <- Response{
-	result: result,
-	err: nil,
-	panicked: false}
-}
-
-func (r *Reply) Panic(e interface{}) {
-	if r.Replied {
-		panic("Send/Panic called twice!")
-	}
-
-	r.Replied = true
-
-	r.Response <- Response{
-	result: nil,
-	err: e,
-	panicked: true}
+	r.Response <- response
 }

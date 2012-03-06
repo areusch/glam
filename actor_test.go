@@ -48,12 +48,12 @@ func (a A) DoPanic() int {
 }
 
 func (a *A) Tricks() int {
-	go a.Defer((*A).LongTricks, a, a.x)
+	a.Defer((*A).LongTricks, a, a.x)
 	return a.x
 }
 
-func (a A) LongTricks(x int, reply glam.Reply) {
-	reply.Send(x + 5)
+func (a A) LongTricks(x int) int {
+	return x + 5
 }
 
 func TestGetX(t *testing.T) {
