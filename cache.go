@@ -1,5 +1,9 @@
 package glam;
 
+import(
+	"reflect"
+)
+
 type RetryBehavior int32
 const(
 	kRetryNever = iota
@@ -69,7 +73,7 @@ func (p *PendingCacheEntry) addWatcher() Future {
 
 func (e *PendingCacheEntry) Fulfill(x interface{}) {
 	e.cache.actor.runInThread(
-		nil, e, (*PendingCacheEntry).notifyListeners, x)
+		nil, reflect.ValueOf(e), (*PendingCacheEntry).notifyListeners, x)
 }
 
 func (e *PendingCacheEntry) notifyListeners(x interface{}) {

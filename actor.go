@@ -2,6 +2,7 @@ package glam
 
 import (
 	"reflect"
+	"runtime/debug"
 )
 
 // Internal state needed by the Actor.
@@ -29,7 +30,7 @@ func (r *Actor) Cast(out chan<- Response, function interface{}, args ...interfac
 	r.runInThread(out, r.Receiver, function, args...)
 }
 
-func (r *Actor) runInThread(out chan<- Response, receiver interface{}, function interface{}, args ...interface{}) {
+func (r *Actor) runInThread(out chan<- Response, receiver reflect.Value, function interface{}, args ...interface{}) {
 	if r.Q == nil {
 		panic("Call StartActor before sending it messages!")
 	}
@@ -37,7 +38,7 @@ func (r *Actor) runInThread(out chan<- Response, receiver interface{}, function 
 	// reflect.Call expects the arguments to be a slice of reflect.Values. We also
 	// need to ensure that the 0th argument is the receiving struct.
 	valuedArgs := make([]reflect.Value, len(args)+1)
-	valuedArgs[0] = reflect.ValueOf(receiver)
+	valuedArgs[0] = receiver
 	for i, x := range args {
 		valuedArgs[i+1] = reflect.ValueOf(x)
 	}
@@ -54,7 +55,7 @@ func (r *Actor) runInThread(out chan<- Response, receiver interface{}, function 
 //
 // It is an error to call this function from anything but the message-processing
 // goroutine.
-func (r *Actor) DeferUnguarded() (reply Reply) {
+func (r *Actor) DeferUnguarded() Reply {
 	r.Deferred = true
 	return Reply{Response: r.Current, Replied: false}
 }
@@ -67,7 +68,7 @@ func (r *Actor) DeferUnguarded() (reply Reply) {
 // goroutine.
 func (r *Actor) Defer(function interface{}, args ...interface{}) {
 	r.Deferred = true
-	go r.runDeferred(Reply{Response: r.Current, Replied: false}, function, args)
+	go r.runDeferred(Reply{Response: r.Current, Replied: false}, function, args...)
 }
 
 func (r *Actor) runDeferred(reply Reply, function interface{}, args ...interface{}) {
@@ -81,7 +82,7 @@ func (r *Actor) runDeferred(reply Reply, function interface{}, args ...interface
 func guardedExec(function reflect.Value, args []reflect.Value) (response Response) {
 	defer func() {
 		if e := recover(); e != nil {
-			response = ResponseImpl{result: nil, err: e, panicked: true}
+			response = ResponseImpl{result: nil, err: e, panicked: true, Stack: debug.Stack(), function: function, args: args}
 		}
 	}()
 

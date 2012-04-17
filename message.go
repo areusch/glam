@@ -1,7 +1,9 @@
 package glam;
 
 import(
+	"fmt"
 	"reflect"
+	"runtime"
 )
 
 // Represents a request to an actor's thread to invoke the given function with
@@ -24,6 +26,9 @@ type ResponseImpl struct {
 	result   []reflect.Value // The return value of the function.
 	err      interface{}     // The value passed to panic, if it was called.
 	panicked bool            // True if the invocation called panic.
+	Stack    []byte
+	function reflect.Value
+	args     []reflect.Value
 }
 
 func (r ResponseImpl) Panicked() bool {
@@ -38,11 +43,22 @@ func (r ResponseImpl) PanicCause() interface{} {
 	return r.err
 }
 
+func (r ResponseImpl) PanicStack() {
+	fmt.Printf("Panic occurred while calling %s(", runtime.FuncForPC(r.function.Pointer()).Name())
+	for i, x := range r.args {
+		if i > 0 {
+			fmt.Printf(", ")
+		}
+		fmt.Printf("%s", x.Type().Name())
+	}
+	fmt.Printf("):\n%s\n", r.Stack)
+}
+
 // If the response indicates that the executor panicked, replicate the panic
 // on this thread. Otherwise, return the result.
 func (r ResponseImpl) Interpret() []reflect.Value {
 	if r.panicked {
-		panic(r.err)
+		panic(r)
 	}
 	return r.result
 }

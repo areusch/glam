@@ -69,8 +69,14 @@ func TestPanic(t *testing.T) {
 	a.StartActor(a)
 
 	defer func() {
-		if e := recover(); e != 3 {
-			t.Errorf("Expected panic(3), actual %v\n", e)
+		if e := recover(); e != nil {
+			if response, ok := e.(Response); ok {
+				if panicCause, ok2 := response.PanicCause().(int); (!ok2 || panicCause != 3) {
+					t.Errorf("Expected to receive panic response == 3, actual %v\n", panicCause)
+				}
+			} else {
+				t.Errorf("Expected panic(Response), actual %v\n", e)
+			}
 		}
 	}()
 
