@@ -80,12 +80,12 @@ func main() {
 Performance
 ===========
 
-The tests include a benchmark. On my 2008 MBP:
+The tests include a benchmark. On my 2008 MBP: (note these are preliminary, need to look into the channel one)
 
 ```
-glam_test.BenchmarkActor	  500000	      5088 ns/op
-glam_test.BenchmarkChannel	 1000000	      2028 ns/op
-glam_test.BenchmarkDeferred	  200000	      7718 ns/op
+glam_test.BenchmarkActor	  500000	      5577 ns/op
+glam_test.BenchmarkChannel	 1000000	      1042 ns/op
+glam_test.BenchmarkDeferred	  200000	      8022 ns/op
 ```
 
 So it's about 2.5x worse for trivial functions. No testing has been done against large numbers of arguments or situations where function calls may block.
