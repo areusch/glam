@@ -88,4 +88,4 @@ glam_test.BenchmarkChannel	 1000000	      1042 ns/op
 glam_test.BenchmarkDeferred	  200000	      8022 ns/op
 ```
 
-So it's about 2.5x worse for trivial functions. No testing has been done against large numbers of arguments or situations where function calls may block.
+So it's about 5.5x worse for trivial functions. No testing has been done against large numbers of arguments or situations where function calls may block.
