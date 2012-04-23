@@ -1,6 +1,7 @@
 package glam
 
 import (
+	"fmt"
 	"reflect"
 	"runtime/debug"
 )
@@ -25,8 +26,40 @@ func (r *Actor) Call(function interface{}, args ...interface{}) []interface{} {
 	return response.InterpretAsInterfaces()
 }
 
+// Internal method to verify that the given function can be invoked on the actor's
+// receiver with the given args.
+func (r *Actor) verifyCallSignature(function interface{}, args []interface{}) {
+	typ := reflect.TypeOf(function)
+	if typ.Kind() != reflect.Func {
+		panic("Function is not a method!")
+	}
+	if typ.NumIn() < 1 {
+		panic("Casted method has no receiver!")
+	}
+	if !r.Receiver.Type().AssignableTo(typ.In(0)) {
+		panic(fmt.Sprintf(
+			"Cannot assign receiver (of type %s) to %s", r.Receiver.Type(), typ.In(0)))
+	}
+	numNonReceiver := typ.NumIn() - 1
+	if len(args) < numNonReceiver {
+		panic(fmt.Sprintf(
+			"Not enough arguments given (needed %d, got %d)", numNonReceiver, len(args)))
+	}
+	if len(args) > numNonReceiver && !typ.IsVariadic() {
+		panic(fmt.Sprintf("Too many args for non-variadic function (needed %d, got %d)",
+			numNonReceiver, len(args)))
+	}
+	for i := 1; i < typ.NumIn(); i++ {
+		if argType := reflect.TypeOf(args[i-1]); !argType.AssignableTo(typ.In(i)) {
+			panic(
+				fmt.Sprintf("Cannot assign arg %d (%s -> %s)", i - 1, argType, typ.In(i)))
+		}
+	}
+}
+
 // Asynchronously request that the given function be invoked with the given args.
 func (r *Actor) Cast(out chan<- Response, function interface{}, args ...interface{}) {
+	r.verifyCallSignature(function, args)
 	r.runInThread(out, r.Receiver, function, args...)
 }
 
